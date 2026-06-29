@@ -4,6 +4,8 @@ import 'package:nexoraiot/app/theme/app_colors.dart';
 import 'package:nexoraiot/shared/presentation/widgets/top_bar.dart';
 import 'package:nexoraiot/shared/presentation/widgets/white_card.dart';
 import 'package:nexoraiot/contexts/properties/domain/entities/app_data.dart';
+import 'package:nexoraiot/contexts/iam/application/services/session_service.dart';
+import 'package:nexoraiot/contexts/iam/presentation/pages/account_settings_page.dart';
 
 class ProfilePage extends StatelessWidget {
   final AppData data;
@@ -12,6 +14,17 @@ class ProfilePage extends StatelessWidget {
     super.key,
     required this.data,
   });
+
+  Future<void> _logout(BuildContext context) async {
+    final sessionService = SessionService();
+    await sessionService.clearSession();
+
+    if (!context.mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Session closed successfully')),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -61,9 +74,20 @@ class ProfilePage extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 20),
-                const _ProfileOption(
+                _ProfileOption(
                   icon: Icons.manage_accounts_outlined,
                   title: 'Account Settings',
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => AccountSettingsPage(
+                          initialName: data.userName,
+                          initialEmail: 'maria.castillo@nexora.com',
+                        ),
+                      ),
+                    );
+                  },
                 ),
                 const _ProfileOption(
                   icon: Icons.security_outlined,
@@ -89,33 +113,36 @@ class ProfilePage extends StatelessWidget {
                   title: 'Help & Support',
                 ),
                 const SizedBox(height: 28),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 14,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    border: Border.all(
-                      color: const Color(0xFFFFB8B8),
+                GestureDetector(
+                  onTap: () => _logout(context),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
                     ),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Row(
-                    children: [
-                      Icon(
-                        Icons.logout,
-                        color: AppColors.red,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      border: Border.all(
+                        color: const Color(0xFFFFB8B8),
                       ),
-                      SizedBox(width: 12),
-                      Text(
-                        'Log Out',
-                        style: TextStyle(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Row(
+                      children: [
+                        Icon(
+                          Icons.logout,
                           color: AppColors.red,
-                          fontWeight: FontWeight.w800,
                         ),
-                      ),
-                    ],
+                        SizedBox(width: 12),
+                        Text(
+                          'Log Out',
+                          style: TextStyle(
+                            color: AppColors.red,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
                 const SizedBox(height: 28),
@@ -142,6 +169,7 @@ class _ProfileOption extends StatelessWidget {
   final String? value;
   final bool active;
   final String? badge;
+  final VoidCallback? onTap;
 
   const _ProfileOption({
     required this.icon,
@@ -149,11 +177,12 @@ class _ProfileOption extends StatelessWidget {
     this.value,
     this.active = false,
     this.badge,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    final optionContent = Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.symmetric(
         horizontal: 14,
@@ -215,6 +244,15 @@ class _ProfileOption extends StatelessWidget {
           ),
         ],
       ),
+    );
+
+    if (onTap == null) {
+      return optionContent;
+    }
+
+    return GestureDetector(
+      onTap: onTap,
+      child: optionContent,
     );
   }
 }
