@@ -6,23 +6,23 @@ import 'package:nexoraiot/app/theme/app_colors.dart';
 import 'package:nexoraiot/shared/presentation/widgets/white_card.dart';
 import 'package:nexoraiot/contexts/automations/domain/entities/automation.dart';
 import 'package:nexoraiot/contexts/automations/presentation/pages/new_automation_flow.dart';
-import 'package:nexoraiot/contexts/consumption/domain/entities/consumption_area.dart';
+import 'package:nexoraiot/contexts/consumption/domain/entities/consumption_report.dart';
 import 'package:nexoraiot/contexts/consumption/domain/entities/consumption_view.dart';
+import 'package:nexoraiot/contexts/consumption/presentation/widgets/report_time.dart';
 import 'package:nexoraiot/contexts/properties/domain/entities/app_data.dart';
 
+/// Drill-down detail reached by tapping the report summary card. Shows a
+/// period-over-period comparison, the top contributing source and a smart,
+/// actionable suggestion (which can be turned into an automation).
 class ConsumptionAlertPage extends StatelessWidget {
   final AppData data;
-  final ConsumptionMetric metric;
-  final ConsumptionRange range;
-  final ConsumptionView view;
+  final ConsumptionReport report;
   final ValueChanged<int>? onDestinationSelected;
 
   const ConsumptionAlertPage({
     super.key,
     required this.data,
-    required this.metric,
-    required this.range,
-    required this.view,
+    required this.report,
     this.onDestinationSelected,
   });
 
@@ -44,16 +44,10 @@ class ConsumptionAlertPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final topConsumer = view.areas.reduce(
-      (current, next) => next.value > current.value ? next : current,
-    );
-    final percent = _deltaPercent(view.deltaLabel);
-    final metricName = metric == ConsumptionMetric.water ? 'Water' : 'Energy';
-    final title = 'High $metricName Consumption\nDetected';
-    final savings = metric == ConsumptionMetric.water ? '8%' : '15';
-    final suggestion = metric == ConsumptionMetric.water
-        ? 'Reducing peak-area use could save approximately $savings% this month.'
-        : 'Setting the AC to 24°C could save you approximately \$$savings this month.';
+    final metricName = report.metric.label;
+    final title = report.highUsage
+        ? 'High $metricName Consumption'
+        : '$metricName Consumption Detail';
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -65,24 +59,15 @@ class ConsumptionAlertPage extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(12, 14, 12, 18),
               child: Column(
                 children: [
-                  _AlertHero(
-                    title: title,
-                    message:
-                        'Your ${metric.label.toLowerCase()} usage is $percent% higher than usual this ${range == ConsumptionRange.day ? 'morning' : range.chip.toLowerCase()}.',
-                  ),
+                  _Hero(report: report, title: title),
                   const SizedBox(height: 14),
-                  _UsageComparisonCard(
-                    percent: percent,
-                    range: range,
-                    values: view.series,
-                  ),
+                  _ComparisonCard(report: report),
+                  if (report.sources.isNotEmpty) ...[
+                    const SizedBox(height: 14),
+                    _TopSourceCard(report: report),
+                  ],
                   const SizedBox(height: 14),
-                  _TopConsumerCard(
-                    metric: metric,
-                    topConsumer: topConsumer,
-                  ),
-                  const SizedBox(height: 14),
-                  _SuggestionCard(text: suggestion),
+                  _SuggestionCard(report: report),
                 ],
               ),
             ),
@@ -104,14 +89,12 @@ class ConsumptionAlertPage extends StatelessWidget {
                 ),
                 child: const Text(
                   'Create automation',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w800,
-                  ),
+                  style: TextStyle(fontWeight: FontWeight.w800),
                 ),
               ),
             ),
           ),
-          _AlertBottomNavigation(
+          _DetailBottomNavigation(
             onDestinationSelected: onDestinationSelected,
           ),
         ],
@@ -143,7 +126,7 @@ class _Header extends StatelessWidget {
           ),
           const Expanded(
             child: Text(
-              'Consumption Alert',
+              'Consumption Detail',
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 20,
@@ -151,40 +134,43 @@ class _Header extends StatelessWidget {
               ),
             ),
           ),
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.filter_alt_outlined, color: Colors.white),
-          ),
         ],
       ),
     );
   }
 }
 
-class _AlertHero extends StatelessWidget {
+class _Hero extends StatelessWidget {
+  final ConsumptionReport report;
   final String title;
-  final String message;
 
-  const _AlertHero({
-    required this.title,
-    required this.message,
-  });
+  const _Hero({required this.report, required this.title});
 
   @override
   Widget build(BuildContext context) {
+    final positive =
+        report.comparable && !report.highUsage && !report.increase;
+    final accent = report.highUsage
+        ? AppColors.orange
+        : (positive ? AppColors.green : AppColors.blue);
+    final updated = report.lastReadingAt != null
+        ? 'Updated ${relativeTime(report.lastReadingAt!)}'
+        : '';
+
     return Column(
       children: [
         Container(
           width: 52,
           height: 52,
-          decoration: const BoxDecoration(
-            color: AppColors.orange,
-            shape: BoxShape.circle,
-          ),
-          child: const Icon(
-            Icons.warning_amber_rounded,
+          decoration: BoxDecoration(color: accent, shape: BoxShape.circle),
+          child: Icon(
+            report.highUsage
+                ? Icons.warning_amber_rounded
+                : (report.metric == ConsumptionMetric.water
+                    ? Icons.water_drop_outlined
+                    : Icons.bolt),
             color: Colors.white,
-            size: 30,
+            size: 28,
           ),
         ),
         const SizedBox(height: 10),
@@ -193,66 +179,105 @@ class _AlertHero extends StatelessWidget {
           textAlign: TextAlign.center,
           style: const TextStyle(
             color: AppColors.text,
-            fontSize: 24,
-            height: 1.25,
+            fontSize: 23,
+            height: 1.2,
             fontWeight: FontWeight.w900,
           ),
         ),
         const SizedBox(height: 6),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Text(
-            message,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: AppColors.muted,
-              fontSize: 14,
-              height: 1.35,
-            ),
+        Text(
+          '${report.totalLabel} ${report.unit} • ${report.range.headline.toLowerCase()}',
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            color: AppColors.muted,
+            fontSize: 14,
+            height: 1.35,
           ),
         ),
+        if (updated.isNotEmpty) ...[
+          const SizedBox(height: 2),
+          Text(
+            updated,
+            style: const TextStyle(color: AppColors.muted, fontSize: 12),
+          ),
+        ],
       ],
     );
   }
 }
 
-class _UsageComparisonCard extends StatelessWidget {
-  final int percent;
-  final ConsumptionRange range;
-  final List<double> values;
+class _ComparisonCard extends StatelessWidget {
+  final ConsumptionReport report;
 
-  const _UsageComparisonCard({
-    required this.percent,
-    required this.range,
-    required this.values,
-  });
+  const _ComparisonCard({required this.report});
 
   @override
   Widget build(BuildContext context) {
-    final labels = _labelsFor(range);
-    final comparedTo = range == ConsumptionRange.day ? 'yesterday' : 'last ${range.chip.toLowerCase()}';
+    final pct = report.deltaPercent.abs();
+    final pctText = pct >= 10 ? pct.toStringAsFixed(0) : pct.toStringAsFixed(1);
+    final accent = report.increase ? AppColors.orange : AppColors.green;
+
+    if (!report.comparable) {
+      return WhiteCard(
+        padding: const EdgeInsets.fromLTRB(18, 18, 18, 18),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Icon(Icons.timelapse, color: AppColors.muted, size: 22),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'PERIOD COMPARISON',
+                    style: TextStyle(
+                      color: AppColors.text,
+                      letterSpacing: 1.2,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Not enough history yet to compare against the '
+                    '${report.range.previousLabel}. Keep your devices online '
+                    'and this will fill in over time.',
+                    style: const TextStyle(
+                      color: AppColors.muted,
+                      fontSize: 13,
+                      height: 1.3,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
 
     return WhiteCard(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+      padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            children: const [
-              Expanded(
+            children: [
+              const Expanded(
                 child: Text(
-                  'USAGE COMPARISON',
+                  'PERIOD COMPARISON',
                   style: TextStyle(
                     color: AppColors.text,
-                    letterSpacing: 1.4,
+                    letterSpacing: 1.2,
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
               ),
               Icon(
-                Icons.trending_up,
-                color: AppColors.orange,
+                report.increase ? Icons.trending_up : Icons.trending_down,
+                color: accent,
                 size: 22,
               ),
             ],
@@ -262,10 +287,10 @@ class _UsageComparisonCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                '+$percent%',
-                style: const TextStyle(
-                  color: Color(0xFF9B3F00),
-                  fontSize: 40,
+                '${report.increase ? '+' : '−'}$pctText%',
+                style: TextStyle(
+                  color: accent,
+                  fontSize: 38,
                   fontWeight: FontWeight.w900,
                 ),
               ),
@@ -273,126 +298,101 @@ class _UsageComparisonCard extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.only(bottom: 9),
                 child: Text(
-                  'vs $comparedTo',
-                  style: const TextStyle(
-                    color: AppColors.text,
-                    fontSize: 12,
-                  ),
+                  'vs ${report.range.previousLabel}',
+                  style: const TextStyle(color: AppColors.text, fontSize: 12),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 20),
-          SizedBox(
-            height: 120,
-            child: _ComparisonBars(
-              values: values,
-              labels: labels,
-            ),
+          const SizedBox(height: 18),
+          _CompareBars(
+            previous: report.previousTotal,
+            current: report.total,
+            unit: report.unit,
+            currentColor: accent,
           ),
         ],
       ),
     );
   }
-
-  List<String> _labelsFor(ConsumptionRange range) {
-    return switch (range) {
-      ConsumptionRange.day => ['12 AM', '6 AM', '12 PM', '6 PM', 'Now'],
-      ConsumptionRange.week => ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Today'],
-      ConsumptionRange.month => ['May', 'Jun', 'Jul', 'Aug', 'Now'],
-      ConsumptionRange.year => ['2022', '2023', '2024', '2025', 'Now'],
-    };
-  }
 }
 
-class _ComparisonBars extends StatelessWidget {
-  final List<double> values;
-  final List<String> labels;
+class _CompareBars extends StatelessWidget {
+  final double previous;
+  final double current;
+  final String unit;
+  final Color currentColor;
 
-  const _ComparisonBars({
-    required this.values,
-    required this.labels,
+  const _CompareBars({
+    required this.previous,
+    required this.current,
+    required this.unit,
+    required this.currentColor,
   });
 
   @override
   Widget build(BuildContext context) {
-    final sample = _sample(values, labels.length);
-    final maxValue = sample.reduce(math.max);
-
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.end,
+    final maxValue = math.max(previous, math.max(current, 0.0001));
+    return Column(
       children: [
-        for (var i = 0; i < labels.length; i++) ...[
-          Expanded(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                Flexible(
-                  child: FractionallySizedBox(
-                    heightFactor: math.max(0.16, sample[i] / maxValue),
-                    alignment: Alignment.bottomCenter,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: _barColor(i),
-                        borderRadius: const BorderRadius.vertical(
-                          top: Radius.circular(2),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  labels[i],
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: i == labels.length - 1
-                        ? AppColors.text
-                        : AppColors.muted,
-                    fontSize: 10,
-                    fontWeight: i == labels.length - 1
-                        ? FontWeight.w800
-                        : FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          if (i != labels.length - 1) const SizedBox(width: 8),
-        ],
+        _bar('Previous', previous, maxValue, const Color(0xFFB8C0D6)),
+        const SizedBox(height: 12),
+        _bar('Current', current, maxValue, currentColor),
       ],
     );
   }
 
-  Color _barColor(int index) {
-    if (index == labels.length - 1) return AppColors.orange;
-    if (index == labels.length - 2) return const Color(0xFFA8B2D0);
-    return const Color(0xFFEDEEF3);
-  }
-
-  List<double> _sample(List<double> source, int count) {
-    if (source.length <= count) return source;
-    final step = (source.length - 1) / (count - 1);
-    return List.generate(count, (index) => source[(index * step).round()]);
+  Widget _bar(String label, double value, double maxValue, Color color) {
+    return Row(
+      children: [
+        SizedBox(
+          width: 64,
+          child: Text(
+            label,
+            style: const TextStyle(
+              color: AppColors.muted,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        Expanded(
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: (value / maxValue).clamp(0.0, 1.0),
+              minHeight: 10,
+              color: color,
+              backgroundColor: const Color(0xFFEDEEF3),
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        SizedBox(
+          width: 78,
+          child: Text(
+            '${ConsumptionReport.formatNumber(value)} $unit',
+            textAlign: TextAlign.right,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+              color: AppColors.text,
+            ),
+          ),
+        ),
+      ],
+    );
   }
 }
 
-class _TopConsumerCard extends StatelessWidget {
-  final ConsumptionMetric metric;
-  final ConsumptionArea topConsumer;
+class _TopSourceCard extends StatelessWidget {
+  final ConsumptionReport report;
 
-  const _TopConsumerCard({
-    required this.metric,
-    required this.topConsumer,
-  });
+  const _TopSourceCard({required this.report});
 
   @override
   Widget build(BuildContext context) {
-    final value = metric == ConsumptionMetric.water
-        ? topConsumer.value.toStringAsFixed(0)
-        : topConsumer.value.toStringAsFixed(1);
-
+    final top = report.sources.first;
     return WhiteCard(
       padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
       child: Row(
@@ -405,9 +405,9 @@ class _TopConsumerCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(
-              metric == ConsumptionMetric.water
+              report.metric == ConsumptionMetric.water
                   ? Icons.water_drop_outlined
-                  : Icons.ac_unit,
+                  : Icons.electrical_services,
               color: AppColors.darkBlue,
               size: 20,
             ),
@@ -418,7 +418,7 @@ class _TopConsumerCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'Top Consumer',
+                  'Top source',
                   style: TextStyle(
                     color: AppColors.muted,
                     fontSize: 13,
@@ -426,13 +426,12 @@ class _TopConsumerCard extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  topConsumer.area,
-                  maxLines: 2,
+                  top.label,
+                  maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: AppColors.text,
                     fontSize: 20,
-                    height: 1.0,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
@@ -444,21 +443,19 @@ class _TopConsumerCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                value,
+                '${top.sharePercent.toStringAsFixed(0)}%',
                 style: const TextStyle(
                   color: AppColors.darkBlue,
-                  fontSize: 30,
-                  height: 0.95,
+                  fontSize: 28,
+                  height: 1.0,
                   fontWeight: FontWeight.w900,
                 ),
               ),
               Text(
-                '${metric.areaUnit}\ntoday',
-                textAlign: TextAlign.right,
-                style: const TextStyle(
-                  color: AppColors.text,
-                  fontSize: 10,
-                  height: 1.1,
+                'of total',
+                style: TextStyle(
+                  color: AppColors.muted.withOpacity(0.9),
+                  fontSize: 11,
                 ),
               ),
             ],
@@ -470,9 +467,30 @@ class _TopConsumerCard extends StatelessWidget {
 }
 
 class _SuggestionCard extends StatelessWidget {
-  final String text;
+  final ConsumptionReport report;
 
-  const _SuggestionCard({required this.text});
+  const _SuggestionCard({required this.report});
+
+  String get _text {
+    final isWater = report.metric == ConsumptionMetric.water;
+    if (report.highUsage) {
+      return isWater
+          ? 'A peak above the safe flow can signal a leak or a tap left open. '
+              'A leak auto-shutoff automation can react instantly.'
+          : 'High current was detected. Spreading heavy appliances across the '
+              'day helps avoid overload and breaker trips.';
+    }
+    if (report.increase) {
+      return isWater
+          ? 'Usage is climbing. Scheduling water-heavy tasks off-peak keeps '
+              'consumption smooth.'
+          : 'Usage is climbing. An eco schedule for climate devices can offset '
+              'the increase.';
+    }
+    return isWater
+        ? 'Great trend. Keep leak alerts on to maintain low usage.'
+        : 'Great trend. Eco automations are paying off — keep them running.';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -486,11 +504,8 @@ class _SuggestionCard extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(
-            Icons.lightbulb_outline,
-            color: Color(0xFF9B3F00),
-            size: 20,
-          ),
+          const Icon(Icons.lightbulb_outline,
+              color: Color(0xFF9B3F00), size: 20),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -506,7 +521,7 @@ class _SuggestionCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 5),
                 Text(
-                  text,
+                  _text,
                   style: const TextStyle(
                     color: AppColors.muted,
                     fontSize: 14,
@@ -522,12 +537,10 @@ class _SuggestionCard extends StatelessWidget {
   }
 }
 
-class _AlertBottomNavigation extends StatelessWidget {
+class _DetailBottomNavigation extends StatelessWidget {
   final ValueChanged<int>? onDestinationSelected;
 
-  const _AlertBottomNavigation({
-    required this.onDestinationSelected,
-  });
+  const _DetailBottomNavigation({required this.onDestinationSelected});
 
   void _select(BuildContext context, int index) {
     if (index != 3) {
@@ -584,9 +597,4 @@ class _AlertBottomNavigation extends StatelessWidget {
       ),
     );
   }
-}
-
-int _deltaPercent(String label) {
-  final match = RegExp(r'\d+').firstMatch(label);
-  return int.tryParse(match?.group(0) ?? '') ?? 18;
 }

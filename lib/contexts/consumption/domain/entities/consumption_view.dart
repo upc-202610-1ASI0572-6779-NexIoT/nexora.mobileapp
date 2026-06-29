@@ -1,5 +1,5 @@
-import 'package:nexoraiot/contexts/consumption/domain/entities/consumption_area.dart';
-
+/// Filters that drive the Reports module: the resource being analysed and the
+/// time window. Shared by the presentation layer and the backend query.
 enum ConsumptionMetric { water, electricity }
 
 enum ConsumptionRange { day, week, month, year }
@@ -8,8 +8,9 @@ extension ConsumptionMetricInfo on ConsumptionMetric {
   String get label =>
       this == ConsumptionMetric.water ? 'Water' : 'Electricity';
 
-  /// Short unit shown next to per-area figures.
-  String get areaUnit => this == ConsumptionMetric.water ? 'L' : 'kWh';
+  /// Value sent to the backend `metric` query parameter.
+  String get apiValue =>
+      this == ConsumptionMetric.water ? 'water' : 'electricity';
 }
 
 extension ConsumptionRangeInfo on ConsumptionRange {
@@ -21,32 +22,25 @@ extension ConsumptionRangeInfo on ConsumptionRange {
       };
 
   String get headline => switch (this) {
-        ConsumptionRange.day => 'TODAY',
-        ConsumptionRange.week => 'THIS WEEK',
-        ConsumptionRange.month => 'THIS MONTH',
-        ConsumptionRange.year => 'THIS YEAR',
+        ConsumptionRange.day => 'LAST 24 HOURS',
+        ConsumptionRange.week => 'LAST 7 DAYS',
+        ConsumptionRange.month => 'LAST 30 DAYS',
+        ConsumptionRange.year => 'LAST 12 MONTHS',
       };
-}
 
-/// A single metric + range slice of consumption data, used by the Reports page.
-class ConsumptionView {
-  final String totalLabel;
-  final String unit;
-  final String deltaLabel;
-  final bool increase;
-  final bool highUsage;
-  final List<double> series;
-  final List<String> axisLabels;
-  final List<ConsumptionArea> areas;
+  /// How the previous period is referred to in deltas.
+  String get previousLabel => switch (this) {
+        ConsumptionRange.day => 'previous day',
+        ConsumptionRange.week => 'previous week',
+        ConsumptionRange.month => 'previous month',
+        ConsumptionRange.year => 'previous year',
+      };
 
-  ConsumptionView({
-    required this.totalLabel,
-    required this.unit,
-    required this.deltaLabel,
-    required this.increase,
-    required this.highUsage,
-    required this.series,
-    required this.axisLabels,
-    required this.areas,
-  });
+  /// Value sent to the backend `range` query parameter.
+  String get apiValue => switch (this) {
+        ConsumptionRange.day => 'day',
+        ConsumptionRange.week => 'week',
+        ConsumptionRange.month => 'month',
+        ConsumptionRange.year => 'year',
+      };
 }
