@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 
 import 'package:nexoraiot/app/theme/app_colors.dart';
+import 'package:nexoraiot/contexts/properties/domain/entities/app_data.dart';
+import 'package:nexoraiot/contexts/alerts/domain/entities/incident.dart';
+import 'package:nexoraiot/contexts/consumption/domain/entities/consumption_view.dart';
+import 'package:nexoraiot/contexts/devices/domain/entities/device_sensor.dart';
 import 'package:nexoraiot/shared/presentation/widgets/line_chart.dart';
 import 'package:nexoraiot/shared/presentation/widgets/section_label.dart';
 import 'package:nexoraiot/shared/presentation/widgets/white_card.dart';
-import 'package:nexoraiot/contexts/properties/domain/entities/app_data.dart';
 
 class HomePage extends StatefulWidget {
   final AppData data;
@@ -19,105 +22,207 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  bool bedroomLights = true;
-  bool livingRoomLights = true;
-
   @override
   Widget build(BuildContext context) {
+    final data = widget.data;
+
+    // Devices count
+    final allDevices = [
+      ...data.gasSensors,
+      ...data.airQuality,
+      ...data.humidity,
+    ];
+    final totalDevices = allDevices.length;
+    final connectedDevices = allDevices.where((d) => d.isConnected).length;
+    final disconnectedDevices = allDevices.where((d) => !d.isConnected).length;
+    final anomalousDevices = allDevices.where((d) => d.alert).length;
+
+    // Alerts count
+    final totalAlerts = data.incidents.length;
+    final activeAlerts = data.incidents.where((i) => i.level != IncidentLevel.solved).length;
+    final resolvedAlerts = data.incidents.where((i) => i.level == IncidentLevel.solved).length;
+    final criticalAlerts = data.incidents.where((i) => i.level == IncidentLevel.critical).length;
+
+    // Sensors
+    final gasSensorsCount = data.gasSensors.length;
+    final waterSensorsCount = data.consumption[ConsumptionMetric.water]?[ConsumptionRange.day]?.areas.length ?? 0;
+    final electricitySensorsCount = data.consumption[ConsumptionMetric.electricity]?[ConsumptionRange.day]?.areas.length ?? 0;
+
+    // Room distribution
+    final roomCounts = <String, int>{};
+    for (final device in allDevices) {
+      roomCounts[device.room] = (roomCounts[device.room] ?? 0) + 1;
+    }
+    final sortedRooms = roomCounts.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+
+    // Platform state calculation
+    String systemStateLabel = 'ÓPTIMO';
+    Color systemStateColor = AppColors.green;
+    IconData systemStateIcon = Icons.check_circle;
+    String systemStateDesc = 'Todos los sistemas están respondiendo correctamente';
+
+    if (criticalAlerts > 0) {
+      systemStateLabel = 'ALERTA CRÍTICA';
+      systemStateColor = AppColors.red;
+      systemStateIcon = Icons.error;
+      systemStateDesc = '$criticalAlerts incidentes críticos que requieren atención';
+    } else if (activeAlerts > 0) {
+      systemStateLabel = 'ADVERTENCIA';
+      systemStateColor = AppColors.orange;
+      systemStateIcon = Icons.warning;
+      systemStateDesc = '$activeAlerts incidentes menores pendientes';
+    }
+
     return Column(
       children: [
-        _HomeHeader(data: widget.data),
+        _HomeHeader(
+          userName: data.userName,
+          homeName: data.homeName,
+          stateLabel: systemStateLabel,
+          stateColor: systemStateColor,
+          stateIcon: systemStateIcon,
+          stateDesc: systemStateDesc,
+        ),
         Expanded(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(12, 16, 12, 18),
+            padding: const EdgeInsets.fromLTRB(14, 20, 14, 24),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const _AlertBanner(),
-                const SizedBox(height: 20),
-                const SectionLabel('REAL TIME CONSUMPTION'),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _MetricCard(
-                        icon: Icons.water_drop_outlined,
-                        iconColor: AppColors.blue,
-                        title: 'WATER TODAY',
-                        value: '${widget.data.waterToday}',
-                        unit: 'L',
-                        variation: '↑ 12%',
-                        variationColor: AppColors.orange,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _MetricCard(
-                        icon: Icons.bolt,
-                        iconColor: AppColors.orange,
-                        title: 'ENERGY TODAY',
-                        value: widget.data.energyToday.toStringAsFixed(1),
-                        unit: 'kWh',
-                        variation: '↓ 8%',
-                        variationColor: AppColors.green,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                _ChartCard(
-                  title: 'Latest 24 h',
-                  action: 'See details',
-                  values: widget.data.latest24h,
-                  height: 72,
-                ),
-                const SizedBox(height: 20),
-                Row(
-                  children: const [
-                    Expanded(child: SectionLabel('QUICK CONTROL')),
-                    Text(
-                      'View all',
-                      style: TextStyle(
-                        color: AppColors.blue,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _SwitchCard(
-                        icon: Icons.light_mode_outlined,
-                        title: 'Bedroom lights',
-                        subtitle: '100%',
-                        value: bedroomLights,
-                        onChanged: (value) {
-                          setState(() {
-                            bedroomLights = value;
-                          });
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _SwitchCard(
-                        icon: Icons.lightbulb_outline,
-                        title: 'Living room lights',
-                        subtitle: '60%',
-                        value: livingRoomLights,
-                        onChanged: (value) {
-                          setState(() {
-                            livingRoomLights = value;
-                          });
-                        },
-                      ),
-                    ),
-                  ],
-                ),
+                const SectionLabel('RESUMEN DE ESTADO'),
                 const SizedBox(height: 12),
-                const _HomeSecureCard(),
+                
+                // Device summary and Alert summary row
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: _SummaryCard(
+                        title: 'Dispositivos',
+                        icon: Icons.sensors_outlined,
+                        iconColor: AppColors.blue,
+                        mainValue: '$totalDevices',
+                        mainValueLabel: 'Registrados',
+                        items: [
+                          _SummaryItem(
+                            label: 'Conectados',
+                            value: '$connectedDevices',
+                            color: AppColors.green,
+                          ),
+                          _SummaryItem(
+                            label: 'Desconectados',
+                            value: '$disconnectedDevices',
+                            color: AppColors.muted,
+                          ),
+                          _SummaryItem(
+                            label: 'Anomalías',
+                            value: '$anomalousDevices',
+                            color: AppColors.red,
+                            bold: anomalousDevices > 0,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _SummaryCard(
+                        title: 'Alertas',
+                        icon: Icons.notification_important_outlined,
+                        iconColor: AppColors.orange,
+                        mainValue: '$totalAlerts',
+                        mainValueLabel: 'Generadas',
+                        items: [
+                          _SummaryItem(
+                            label: 'Activas',
+                            value: '$activeAlerts',
+                            color: activeAlerts > 0 ? AppColors.orange : AppColors.muted,
+                            bold: activeAlerts > 0,
+                          ),
+                          _SummaryItem(
+                            label: 'Críticas',
+                            value: '$criticalAlerts',
+                            color: criticalAlerts > 0 ? AppColors.red : AppColors.muted,
+                            bold: criticalAlerts > 0,
+                          ),
+                          _SummaryItem(
+                            label: 'Resueltas',
+                            value: '$resolvedAlerts',
+                            color: AppColors.green,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                
+                const SizedBox(height: 16),
+                
+                // Sensors and room distribution row
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: _SummaryCard(
+                        title: 'Sensores',
+                        icon: Icons.analytics_outlined,
+                        iconColor: AppColors.green,
+                        mainValue: '${gasSensorsCount + waterSensorsCount + electricitySensorsCount}',
+                        mainValueLabel: 'Monitoreados',
+                        items: [
+                          _SummaryItem(
+                            label: 'Gas Natural',
+                            value: '$gasSensorsCount',
+                            color: AppColors.blue,
+                          ),
+                          _SummaryItem(
+                            label: 'Flujo de Agua',
+                            value: '$waterSensorsCount',
+                            color: AppColors.blue,
+                          ),
+                          _SummaryItem(
+                            label: 'Consumo Eléc.',
+                            value: '$electricitySensorsCount',
+                            color: AppColors.blue,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _RoomDistributionCard(
+                        rooms: sortedRooms,
+                        totalDevices: totalDevices,
+                      ),
+                    ),
+                  ],
+                ),
+                
+                const SizedBox(height: 24),
+                
+                const SectionLabel('ACTIVIDAD RECIENTE'),
+                const SizedBox(height: 12),
+                
+                // Show the top 3 latest incidents
+                if (data.incidents.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 20),
+                    child: Center(
+                      child: Text(
+                        'No hay actividad reciente registrada',
+                        style: TextStyle(color: AppColors.muted),
+                      ),
+                    ),
+                  )
+                else
+                  ...data.incidents.take(3).map((incident) => _ActivityTile(incident: incident)),
+                
+                const SizedBox(height: 20),
+                
+                const SectionLabel('TENDENCIA GENERAL DE ACTIVIDAD (24H)'),
+                const SizedBox(height: 12),
+                
+                _TrendCard(values: data.latest24h),
               ],
             ),
           ),
@@ -128,90 +233,160 @@ class _HomePageState extends State<HomePage> {
 }
 
 class _HomeHeader extends StatelessWidget {
-  final AppData data;
+  final String userName;
+  final String homeName;
+  final String stateLabel;
+  final Color stateColor;
+  final IconData stateIcon;
+  final String stateDesc;
 
   const _HomeHeader({
-    required this.data,
+    required this.userName,
+    required this.homeName,
+    required this.stateLabel,
+    required this.stateColor,
+    required this.stateIcon,
+    required this.stateDesc,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: AppColors.blue,
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [AppColors.darkBlue, AppColors.blue],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
       width: double.infinity,
       padding: EdgeInsets.only(
-        top: MediaQuery.of(context).padding.top + 8,
-        left: 16,
-        right: 16,
-        bottom: 20,
+        top: MediaQuery.of(context).padding.top + 16,
+        left: 18,
+        right: 18,
+        bottom: 24,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Good morning',
-            style: TextStyle(
-              color: Colors.white70,
-              fontSize: 14,
-            ),
-          ),
-          const SizedBox(height: 6),
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Expanded(
-                child: Text(
-                  data.userName,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 22,
-                    fontWeight: FontWeight.w800,
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'NEXORA PLATFORM'.toUpperCase(),
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.6),
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 2.0,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      userName,
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ],
                 ),
               ),
+              const SizedBox(width: 12),
               Container(
-                width: 42,
-                height: 42,
-                decoration: const BoxDecoration(
-                  color: Color(0xFF344EA0),
-                  shape: BoxShape.circle,
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(
-                  Icons.notifications_none,
-                  color: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.home,
+                      color: Colors.white70,
+                      size: 16,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      homeName,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 22),
+          const SizedBox(height: 20),
           Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 14,
-              vertical: 12,
-            ),
+            padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: const Color(0xFF2B46A0),
-              borderRadius: BorderRadius.circular(10),
+              color: Colors.white.withOpacity(0.09),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: Colors.white.withOpacity(0.15),
+                width: 1.0,
+              ),
             ),
             child: Row(
               children: [
-                const Icon(
-                  Icons.circle,
-                  size: 9,
-                  color: Color(0xFF57E36F),
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: stateColor.withOpacity(0.2),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    stateIcon,
+                    color: stateColor,
+                    size: 24,
+                  ),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 12),
                 Expanded(
-                  child: Text(
-                    '${data.homeName} · All active systems',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 15,
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'ESTADO DEL SISTEMA',
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.5),
+                          fontSize: 9,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1.5,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        stateLabel,
+                        style: TextStyle(
+                          color: stateColor,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        stateDesc,
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.9),
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-                const Icon(
-                  Icons.keyboard_arrow_down,
-                  color: Colors.white,
                 ),
               ],
             ),
@@ -222,133 +397,65 @@ class _HomeHeader extends StatelessWidget {
   }
 }
 
-class _AlertBanner extends StatelessWidget {
-  const _AlertBanner();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: AppColors.orange,
-          width: 1.4,
-        ),
-      ),
-      padding: const EdgeInsets.all(14),
-      child: Row(
-        children: [
-          Container(
-            width: 34,
-            height: 34,
-            decoration: BoxDecoration(
-              color: const Color(0xFFFFF0E5),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Icon(
-              Icons.warning_amber_rounded,
-              color: AppColors.orange,
-            ),
-          ),
-          const SizedBox(width: 12),
-          const Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Possible leak detected',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 15,
-                  ),
-                ),
-                SizedBox(height: 2),
-                Text(
-                  'Master bathroom · 4 min ago',
-                  style: TextStyle(
-                    color: AppColors.muted,
-                    fontSize: 12,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const Icon(
-            Icons.chevron_right,
-            color: AppColors.muted,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _MetricCard extends StatelessWidget {
+class _SummaryCard extends StatelessWidget {
+  final String title;
   final IconData icon;
   final Color iconColor;
-  final String title;
-  final String value;
-  final String unit;
-  final String variation;
-  final Color variationColor;
+  final String mainValue;
+  final String mainValueLabel;
+  final List<_SummaryItem> items;
 
-  const _MetricCard({
+  const _SummaryCard({
+    required this.title,
     required this.icon,
     required this.iconColor,
-    required this.title,
-    required this.value,
-    required this.unit,
-    required this.variation,
-    required this.variationColor,
+    required this.mainValue,
+    required this.mainValueLabel,
+    required this.items,
   });
 
   @override
   Widget build(BuildContext context) {
     return WhiteCard(
+      padding: const EdgeInsets.all(14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
               Container(
-                width: 34,
-                height: 34,
+                padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
-                  color: iconColor.withOpacity(0.1),
+                  color: iconColor.withOpacity(0.08),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(
                   icon,
                   color: iconColor,
+                  size: 18,
                 ),
               ),
-              const Spacer(),
-              Text(
-                variation,
-                style: TextStyle(
-                  color: variationColor,
-                  fontSize: 12,
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  title.toUpperCase(),
+                  style: const TextStyle(
+                    color: AppColors.muted,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1.0,
+                  ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 14),
-          Text(
-            title,
-            style: const TextStyle(
-              color: AppColors.muted,
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 1.1,
-            ),
-          ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 12),
           Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
             children: [
               Text(
-                value,
+                mainValue,
                 style: const TextStyle(
                   color: AppColors.text,
                   fontSize: 28,
@@ -356,121 +463,292 @@ class _MetricCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 4),
-              Padding(
-                padding: const EdgeInsets.only(bottom: 5),
+              Expanded(
                 child: Text(
-                  unit,
+                  mainValueLabel,
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
                   style: const TextStyle(
                     color: AppColors.muted,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ),
             ],
           ),
+          const SizedBox(height: 10),
+          const Divider(height: 1, color: AppColors.border),
+          const SizedBox(height: 10),
+          ...items.map((item) {
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      item.label,
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                      style: TextStyle(
+                        color: AppColors.text.withOpacity(0.85),
+                        fontSize: 11,
+                        fontWeight: item.bold ? FontWeight.bold : FontWeight.normal,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: item.color.withOpacity(0.08),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      item.value,
+                      style: TextStyle(
+                        color: item.color,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
         ],
       ),
     );
   }
 }
 
-class _ChartCard extends StatelessWidget {
-  final String title;
-  final String action;
-  final List<double> values;
-  final double height;
+class _SummaryItem {
+  final String label;
+  final String value;
+  final Color color;
+  final bool bold;
 
-  const _ChartCard({
-    required this.title,
-    required this.action,
-    required this.values,
-    required this.height,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return WhiteCard(
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-              const Spacer(),
-              Text(
-                action,
-                style: const TextStyle(
-                  color: AppColors.muted,
-                  fontSize: 12,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          SizedBox(
-            height: height,
-            child: LineChart(values: values),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SwitchCard extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final bool value;
-  final ValueChanged<bool> onChanged;
-
-  const _SwitchCard({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
+  const _SummaryItem({
+    required this.label,
     required this.value,
-    required this.onChanged,
+    required this.color,
+    this.bold = false,
+  });
+}
+
+class _RoomDistributionCard extends StatelessWidget {
+  final List<MapEntry<String, int>> rooms;
+  final int totalDevices;
+
+  const _RoomDistributionCard({
+    required this.rooms,
+    required this.totalDevices,
   });
 
   @override
   Widget build(BuildContext context) {
     return WhiteCard(
+      padding: const EdgeInsets.all(14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(
-                icon,
-                color: AppColors.blue,
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: AppColors.blue.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.room_preferences_outlined,
+                  color: AppColors.blue,
+                  size: 18,
+                ),
               ),
-              const Spacer(),
-              Transform.scale(
-                scale: 0.85,
-                child: Switch(
-                  value: value,
-                  activeColor: AppColors.blue,
-                  onChanged: onChanged,
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text(
+                  'ZONAS / AMBIENTES',
+                  style: TextStyle(
+                    color: AppColors.muted,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1.0,
+                  ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          Text(
-            title,
-            style: const TextStyle(
-              fontWeight: FontWeight.w900,
+          const SizedBox(height: 12),
+          if (rooms.isEmpty)
+            const Text(
+              'Sin dispositivos',
+              style: TextStyle(color: AppColors.muted, fontSize: 11),
+            )
+          else ...[
+            Text(
+              '${rooms.length} Sectores',
+              style: const TextStyle(
+                color: AppColors.text,
+                fontSize: 22,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 10),
+            const Divider(height: 1, color: AppColors.border),
+            const SizedBox(height: 10),
+            ...rooms.take(3).map((entry) {
+              final pct = totalDevices == 0 ? 0.0 : entry.value / totalDevices;
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          entry.key,
+                          style: const TextStyle(
+                            color: AppColors.text,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        Text(
+                          '${entry.value}',
+                          style: const TextStyle(
+                            color: AppColors.muted,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: LinearProgressIndicator(
+                        value: pct,
+                        backgroundColor: AppColors.background,
+                        valueColor: const AlwaysStoppedAnimation<Color>(AppColors.blue),
+                        minHeight: 4,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _ActivityTile extends StatelessWidget {
+  final Incident incident;
+
+  const _ActivityTile({required this.incident});
+
+  @override
+  Widget build(BuildContext context) {
+    Color levelColor;
+    String levelText;
+
+    switch (incident.level) {
+      case IncidentLevel.critical:
+        levelColor = AppColors.red;
+        levelText = 'Crítico';
+        break;
+      case IncidentLevel.warning:
+        levelColor = AppColors.orange;
+        levelText = 'Advertencia';
+        break;
+      case IncidentLevel.solved:
+        levelColor = AppColors.green;
+        levelText = 'Resuelto';
+        break;
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.border, width: 1),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: levelColor.withOpacity(0.08),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              incident.icon,
+              color: levelColor,
+              size: 20,
             ),
           ),
-          Text(
-            subtitle,
-            style: const TextStyle(
-              color: AppColors.muted,
-              fontSize: 12,
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  incident.title,
+                  style: const TextStyle(
+                    color: AppColors.text,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  incident.subtitle,
+                  style: const TextStyle(
+                    color: AppColors.muted,
+                    fontSize: 11,
+                  ),
+                ),
+              ],
             ),
+          ),
+          const SizedBox(width: 8),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                incident.time,
+                style: const TextStyle(
+                  color: AppColors.muted,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: levelColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  levelText,
+                  style: TextStyle(
+                    color: levelColor,
+                    fontSize: 9,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -478,59 +756,67 @@ class _SwitchCard extends StatelessWidget {
   }
 }
 
-class _HomeSecureCard extends StatelessWidget {
-  const _HomeSecureCard();
+class _TrendCard extends StatelessWidget {
+  final List<double> values;
+
+  const _TrendCard({required this.values});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: AppColors.green,
-          width: 1.3,
-        ),
-      ),
-      padding: const EdgeInsets.all(14),
-      child: Row(
+    return WhiteCard(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 34,
-            height: 34,
-            decoration: BoxDecoration(
-              color: const Color(0xFFE3F7EA),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Icon(
-              Icons.home_outlined,
-              color: AppColors.green,
-            ),
-          ),
-          const SizedBox(width: 12),
-          const Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Home secure',
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Expanded(
+                child: Text(
+                  'Nivel de actividad (últimas 24h)',
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
                   style: TextStyle(
-                    fontWeight: FontWeight.w900,
+                    color: AppColors.text,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
-                Text(
-                  'Everything looks good at San Isidro\nHouse. You can relax.',
-                  style: TextStyle(
-                    color: AppColors.muted,
-                    fontSize: 12,
+              ),
+              const SizedBox(width: 8),
+              Row(
+                children: const [
+                  Icon(Icons.trending_down, color: AppColors.green, size: 14),
+                  SizedBox(width: 4),
+                  Text(
+                    'Estable',
+                    style: TextStyle(
+                      color: AppColors.green,
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            height: 90,
+            child: LineChart(
+              values: values,
+              showGrid: true,
+              showLastDot: true,
             ),
           ),
-          const Icon(
-            Icons.chevron_right,
-            color: AppColors.muted,
+          const SizedBox(height: 10),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: const [
+              Text('Hace 24h', style: TextStyle(color: AppColors.muted, fontSize: 10)),
+              Text('Hace 12h', style: TextStyle(color: AppColors.muted, fontSize: 10)),
+              Text('Actual', style: TextStyle(color: AppColors.muted, fontSize: 10)),
+            ],
           ),
         ],
       ),
