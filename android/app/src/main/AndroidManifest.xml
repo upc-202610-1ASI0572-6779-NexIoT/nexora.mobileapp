@@ -1,4 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Required so the app can reach the Nexora backend (Reports, etc.). -->
+    <uses-permission android:name="android.permission.INTERNET"/>
     <application
         android:label="nexoraiot"
         android:name="${applicationName}"
