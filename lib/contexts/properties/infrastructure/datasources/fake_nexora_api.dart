@@ -46,19 +46,19 @@ class FakeNexoraApi {
         12,
       ],
       gasSensors: [
-        DeviceSensor('Kitchen', 'Floor 1', 'No leaks detected', false, 'Kitchen'),
+        DeviceSensor('Kitchen', 'Floor 1', 'No leaks detected', false, 'Kitchen', true, 'Just now', 'Gas'),
         DeviceSensor(
-            'Basement', 'Basement 1', 'No leaks detected', false, 'Basement', false),
-        DeviceSensor('Kitchen', 'Floor 2', 'Leak detected', true, 'Kitchen'),
+            'Basement', 'Basement 1', 'No leaks detected', false, 'Basement', false, '4h ago', 'Gas'),
+        DeviceSensor('Kitchen', 'Floor 2', 'Leak detected', true, 'Kitchen', true, 'Just now', 'Gas'),
       ],
       airQuality: [
-        DeviceSensor('Habitación 1', 'Floor 1', '100 %', false, 'Bedroom'),
-        DeviceSensor('Dinning Room', 'Floor 2', '95 %', false, 'Living Room'),
-        DeviceSensor('Kitchen', 'Floor 2', '93 %', false, 'Kitchen'),
+        DeviceSensor('Habitación 1', 'Floor 1', '100 %', false, 'Bedroom', true, 'Just now', 'Air Quality'),
+        DeviceSensor('Dinning Room', 'Floor 2', '95 %', false, 'Living Room', true, 'Just now', 'Air Quality'),
+        DeviceSensor('Kitchen', 'Floor 2', '93 %', false, 'Kitchen', true, 'Just now', 'Air Quality'),
       ],
       humidity: [
-        DeviceSensor('Living Room', 'Floor 1', '60 %', false, 'Living Room'),
-        DeviceSensor('Garage', 'Floor 1', '87 %', false, 'Garage', false),
+        DeviceSensor('Living Room', 'Floor 1', '60 %', false, 'Living Room', true, 'Just now', 'Humidity'),
+        DeviceSensor('Garage', 'Floor 1', '87 %', false, 'Garage', false, '2d ago', 'Humidity'),
       ],
       incidents: [
         Incident(

@@ -5,6 +5,8 @@ class DeviceSensor {
   final bool alert;
   final String room;
   final bool isConnected;
+  final String lastSeen;
+  final String sensorType;
 
   DeviceSensor(
       this.title,
@@ -13,5 +15,7 @@ class DeviceSensor {
       this.alert,
       this.room, [
       this.isConnected = true,
+      this.lastSeen = 'Just now',
+      this.sensorType = 'Unknown',
       ]);
 }
