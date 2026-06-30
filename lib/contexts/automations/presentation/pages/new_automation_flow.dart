@@ -168,8 +168,9 @@ class _NewAutomationFlowState extends State<NewAutomationFlow> {
   // --------------------------------------------------------------- Step 3
   Widget _buildTimerStep() {
     final unit = _timerMinutes < 60 ? 'min' : 'h';
-    final amount =
-        _timerMinutes < 60 ? '$_timerMinutes' : '${_timerMinutes ~/ 60}';
+    final amount = _timerMinutes < 60
+        ? '$_timerMinutes'
+        : '${_timerMinutes ~/ 60}';
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 18, 16, 24),
@@ -252,10 +253,7 @@ class _NewAutomationFlowState extends State<NewAutomationFlow> {
         const SizedBox(height: 18),
         const _SmartTipCard(),
         const SizedBox(height: 20),
-        _PrimaryButton(
-          label: 'Continue',
-          onTap: () => _goTo(3),
-        ),
+        _PrimaryButton(label: 'Continue', onTap: () => _goTo(3)),
       ],
     );
   }
@@ -316,7 +314,8 @@ class _NewAutomationFlowState extends State<NewAutomationFlow> {
               _SummaryRow(
                 badge: 'THEN',
                 badgeColor: AppColors.orange,
-                title: '${action.summaryTitle} · '
+                title:
+                    '${action.summaryTitle} · '
                     '${_timerMinutes < 60 ? '$_timerMinutes min' : '${_timerMinutes ~/ 60} h'}',
                 subtitle: action.summarySubtitle,
               ),
@@ -579,7 +578,7 @@ class _ToggleRow extends StatelessWidget {
           ),
           Switch(
             value: value,
-            activeColor: activeColor,
+            activeThumbColor: activeColor,
             onChanged: onChanged,
           ),
         ],
@@ -694,10 +693,7 @@ class _SummaryRow extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   subtitle,
-                  style: const TextStyle(
-                    color: AppColors.muted,
-                    fontSize: 12,
-                  ),
+                  style: const TextStyle(color: AppColors.muted, fontSize: 12),
                 ),
               ],
             ),
@@ -837,7 +833,7 @@ class _PrimaryButton extends StatelessWidget {
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.blue,
           foregroundColor: Colors.white,
-          disabledBackgroundColor: AppColors.blue.withOpacity(0.6),
+          disabledBackgroundColor: AppColors.blue.withValues(alpha: 0.6),
           elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(10),
@@ -868,10 +864,7 @@ class _OutlinedButton extends StatelessWidget {
   final String label;
   final VoidCallback? onTap;
 
-  const _OutlinedButton({
-    required this.label,
-    required this.onTap,
-  });
+  const _OutlinedButton({required this.label, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -888,10 +881,7 @@ class _OutlinedButton extends StatelessWidget {
         ),
         child: Text(
           label,
-          style: const TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w800,
-          ),
+          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
         ),
       ),
     );
@@ -932,8 +922,9 @@ class _CustomTimerDialog extends StatefulWidget {
 }
 
 class _CustomTimerDialogState extends State<_CustomTimerDialog> {
-  late final TextEditingController _controller =
-      TextEditingController(text: '${widget.initialMinutes}');
+  late final TextEditingController _controller = TextEditingController(
+    text: '${widget.initialMinutes}',
+  );
 
   @override
   void dispose() {
@@ -964,10 +955,7 @@ class _CustomTimerDialogState extends State<_CustomTimerDialog> {
           onPressed: () => Navigator.of(context).pop(),
           child: const Text('Cancel'),
         ),
-        TextButton(
-          onPressed: _submit,
-          child: const Text('Set'),
-        ),
+        TextButton(onPressed: _submit, child: const Text('Set')),
       ],
     );
   }

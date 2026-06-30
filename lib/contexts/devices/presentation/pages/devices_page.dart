@@ -12,10 +12,7 @@ import 'package:nexoraiot/contexts/devices/domain/entities/device_sensor.dart';
 class DevicesPage extends StatefulWidget {
   final AppData data;
 
-  const DevicesPage({
-    super.key,
-    required this.data,
-  });
+  const DevicesPage({super.key, required this.data});
 
   @override
   State<DevicesPage> createState() => _DevicesPageState();
@@ -37,10 +34,10 @@ class _DevicesPageState extends State<DevicesPage> {
   }
 
   List<DeviceSensor> get _allDevices => [
-        ...widget.data.gasSensors,
-        ...widget.data.airQuality,
-        ...widget.data.humidity,
-      ];
+    ...widget.data.gasSensors,
+    ...widget.data.airQuality,
+    ...widget.data.humidity,
+  ];
 
   /// Rooms ordered by device counts (desc)
   List<String> get _rooms {
@@ -109,10 +106,7 @@ class _DevicesPageState extends State<DevicesPage> {
 
     return Column(
       children: [
-        const TopBar(
-          title: 'Devices',
-          actionIcon: Icons.search,
-        ),
+        const TopBar(title: 'Devices', actionIcon: Icons.search),
         Expanded(
           child: SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(14, 16, 14, 24),
@@ -140,7 +134,8 @@ class _DevicesPageState extends State<DevicesPage> {
                 const SizedBox(height: 8),
                 _StatusFilters(
                   selectedStatus: _selectedStatus,
-                  onSelect: (status) => setState(() => _selectedStatus = status),
+                  onSelect: (status) =>
+                      setState(() => _selectedStatus = status),
                   totalCount: totalCount,
                   connectedCount: connectedCount,
                   disconnectedCount: disconnectedCount,
@@ -153,7 +148,8 @@ class _DevicesPageState extends State<DevicesPage> {
                 _RoomFilters(
                   rooms: _rooms,
                   total: totalCount,
-                  countFor: (room) => _allDevices.where((d) => d.room == room).length,
+                  countFor: (room) =>
+                      _allDevices.where((d) => d.room == room).length,
                   selectedRoom: _selectedRoom,
                   onSelect: (room) => setState(() => _selectedRoom = room),
                 ),
@@ -383,10 +379,7 @@ class _AutomationCard extends StatelessWidget {
   final int activeCount;
   final VoidCallback onTap;
 
-  const _AutomationCard({
-    required this.activeCount,
-    required this.onTap,
-  });
+  const _AutomationCard({required this.activeCount, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -426,11 +419,7 @@ class _AutomationCard extends StatelessWidget {
                       const SizedBox(height: 10),
                       const Row(
                         children: [
-                          Icon(
-                            Icons.circle,
-                            color: AppColors.orange,
-                            size: 7,
-                          ),
+                          Icon(Icons.circle, color: AppColors.orange, size: 7),
                           SizedBox(width: 4),
                           Expanded(
                             child: Text(
@@ -451,12 +440,9 @@ class _AutomationCard extends StatelessWidget {
               Icon(
                 Icons.sensors_outlined,
                 size: 74,
-                color: AppColors.blue.withOpacity(0.08),
+                color: AppColors.blue.withValues(alpha: 0.08),
               ),
-              const Icon(
-                Icons.chevron_right,
-                color: AppColors.muted,
-              ),
+              const Icon(Icons.chevron_right, color: AppColors.muted),
             ],
           ),
         ),
@@ -487,12 +473,16 @@ class _DeviceSection extends StatelessWidget {
         const SizedBox(height: 10),
         Column(
           children: items.map((item) {
-            Color statusColor = item.isConnected ? AppColors.green : AppColors.muted;
-            Color iconBg = item.alert 
-                ? const Color(0xFFFFE6E6) 
-                : (item.isConnected ? const Color(0xFFF0F2FF) : const Color(0xFFEBEBEB));
-            Color iconColor = item.alert 
-                ? AppColors.red 
+            Color statusColor = item.isConnected
+                ? AppColors.green
+                : AppColors.muted;
+            Color iconBg = item.alert
+                ? const Color(0xFFFFE6E6)
+                : (item.isConnected
+                      ? const Color(0xFFF0F2FF)
+                      : const Color(0xFFEBEBEB));
+            Color iconColor = item.alert
+                ? AppColors.red
                 : (item.isConnected ? AppColors.blue : AppColors.muted);
 
             return Container(
@@ -501,7 +491,9 @@ class _DeviceSection extends StatelessWidget {
                 color: AppColors.card,
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(
-                  color: item.alert ? AppColors.red.withOpacity(0.5) : AppColors.border,
+                  color: item.alert
+                      ? AppColors.red.withValues(alpha: 0.5)
+                      : AppColors.border,
                   width: item.alert ? 1.4 : 1.0,
                 ),
               ),
@@ -516,9 +508,7 @@ class _DeviceSection extends StatelessWidget {
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
-                      item.alert
-                          ? alertIcon ?? Icons.warning_rounded
-                          : icon,
+                      item.alert ? alertIcon ?? Icons.warning_rounded : icon,
                       color: iconColor,
                       size: 20,
                     ),
@@ -543,9 +533,12 @@ class _DeviceSection extends StatelessWidget {
                             ),
                             // Connection status pill badge
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
                               decoration: BoxDecoration(
-                                color: statusColor.withOpacity(0.08),
+                                color: statusColor.withValues(alpha: 0.08),
                                 borderRadius: BorderRadius.circular(4),
                               ),
                               child: Text(
@@ -576,7 +569,7 @@ class _DeviceSection extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                           maxLines: 1,
                           style: TextStyle(
-                            color: AppColors.muted.withOpacity(0.8),
+                            color: AppColors.muted.withValues(alpha: 0.8),
                             fontSize: 10,
                             fontStyle: FontStyle.italic,
                           ),
@@ -591,7 +584,9 @@ class _DeviceSection extends StatelessWidget {
                       Text(
                         item.value == 'No leaks detected'
                             ? 'No leaks'
-                            : (item.value == 'Leak detected' ? 'Leak' : item.value),
+                            : (item.value == 'Leak detected'
+                                  ? 'Leak'
+                                  : item.value),
                         overflow: TextOverflow.ellipsis,
                         maxLines: 1,
                         style: TextStyle(
@@ -603,15 +598,22 @@ class _DeviceSection extends StatelessWidget {
                       if (item.alert) ...[
                         const SizedBox(height: 4),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
-                            color: AppColors.red.withOpacity(0.08),
+                            color: AppColors.red.withValues(alpha: 0.08),
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: const Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.error_outline, size: 10, color: AppColors.red),
+                              Icon(
+                                Icons.error_outline,
+                                size: 10,
+                                color: AppColors.red,
+                              ),
                               SizedBox(width: 3),
                               Text(
                                 'ALERTA',

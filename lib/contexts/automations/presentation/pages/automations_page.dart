@@ -9,10 +9,7 @@ import 'new_automation_flow.dart';
 class AutomationsPage extends StatefulWidget {
   final List<Automation> automations;
 
-  const AutomationsPage({
-    super.key,
-    required this.automations,
-  });
+  const AutomationsPage({super.key, required this.automations});
 
   @override
   State<AutomationsPage> createState() => _AutomationsPageState();
@@ -166,10 +163,7 @@ class _SummaryCard extends StatelessWidget {
                         child: Text(
                           'System optimizing energy usage',
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: AppColors.text,
-                            fontSize: 12,
-                          ),
+                          style: TextStyle(color: AppColors.text, fontSize: 12),
                         ),
                       ),
                     ],
@@ -181,7 +175,7 @@ class _SummaryCard extends StatelessWidget {
           Icon(
             Icons.sensors_outlined,
             size: 74,
-            color: AppColors.blue.withOpacity(0.08),
+            color: AppColors.blue.withValues(alpha: 0.08),
           ),
         ],
       ),
@@ -212,10 +206,7 @@ class _NewAutomationButton extends StatelessWidget {
         icon: const Icon(Icons.add, size: 20),
         label: const Text(
           'New automation',
-          style: TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w800,
-          ),
+          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
         ),
       ),
     );
@@ -226,10 +217,7 @@ class _AutomationTile extends StatelessWidget {
   final Automation automation;
   final ValueChanged<bool> onChanged;
 
-  const _AutomationTile({
-    required this.automation,
-    required this.onChanged,
-  });
+  const _AutomationTile({required this.automation, required this.onChanged});
 
   @override
   Widget build(BuildContext context) {
@@ -265,10 +253,7 @@ class _AutomationTile extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   automation.summaryLine,
-                  style: const TextStyle(
-                    color: AppColors.muted,
-                    fontSize: 12,
-                  ),
+                  style: const TextStyle(color: AppColors.muted, fontSize: 12),
                 ),
               ],
             ),
@@ -277,7 +262,7 @@ class _AutomationTile extends StatelessWidget {
             scale: 0.85,
             child: Switch(
               value: automation.enabled,
-              activeColor: AppColors.blue,
+              activeThumbColor: AppColors.blue,
               onChanged: onChanged,
             ),
           ),

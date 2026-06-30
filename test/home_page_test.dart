@@ -20,13 +20,17 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('HomePage displays general system status and metrics correctly',
-      (tester) async {
+  testWidgets('HomePage displays general system status and metrics correctly', (
+    tester,
+  ) async {
     await pump(tester, HomePage(data: data));
 
     // Platform status based on mock data (has critical alerts)
     expect(find.text('ALERTA CRÍTICA'), findsOneWidget);
-    expect(find.text('2 incidentes críticos que requieren atención'), findsOneWidget);
+    expect(
+      find.text('2 incidentes críticos que requieren atención'),
+      findsOneWidget,
+    );
 
     // Device counts: total = 8
     expect(find.text('8'), findsWidgets);
@@ -34,16 +38,17 @@ void main() {
     expect(find.text('Conectados'), findsOneWidget);
     expect(find.text('Desconectados'), findsOneWidget);
     expect(find.text('Anomalías'), findsOneWidget);
-    
+
     // We expect "6" to be displayed twice (Connected Devices: 6, Total Alerts: 6)
     expect(find.text('6'), findsNWidgets(2));
 
-    // We expect "2" to be displayed four times:
+    // We expect "2" to be displayed five times:
     // 1. Disconnected Devices (2)
-    // 2. Critical Alerts (2)
-    // 3. Solved Alerts (2)
-    // 4. Living Room Devices count (2)
-    expect(find.text('2'), findsNWidgets(4));
+    // 2. Active Alerts (2)
+    // 3. Critical Alerts (2)
+    // 4. Solved Alerts (2)
+    // 5. Living Room Devices count (2)
+    expect(find.text('2'), findsNWidgets(5));
 
     // Alerts summary
     expect(find.text('Generadas'), findsOneWidget);
@@ -64,8 +69,8 @@ void main() {
     expect(find.text('Basement'), findsWidgets);
 
     // Recent activity tiles (first 3 incidents)
-    expect(find.text('Water Leak Detected'), findsOneWidget);
-    expect(find.text('Power Surge'), findsOneWidget);
-    expect(find.text('Motion in Backyard'), findsOneWidget);
+    expect(find.text('Water leak detected'), findsOneWidget);
+    expect(find.text('Electricity consumption spike'), findsOneWidget);
+    expect(find.text('Gas anomaly pending review'), findsOneWidget);
   });
 }

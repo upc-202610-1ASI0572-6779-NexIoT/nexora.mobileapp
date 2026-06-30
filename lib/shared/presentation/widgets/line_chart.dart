@@ -55,16 +55,12 @@ class LineChartPainter extends CustomPainter {
 
     if (showGrid) {
       final gridPaint = Paint()
-        ..color = AppColors.border.withOpacity(0.6)
+        ..color = AppColors.border.withValues(alpha: 0.6)
         ..strokeWidth = 1;
 
       for (int i = 1; i <= 3; i++) {
         final y = size.height * i / 4;
-        canvas.drawLine(
-          Offset(0, y),
-          Offset(size.width, y),
-          gridPaint,
-        );
+        canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
       }
     }
 
@@ -88,7 +84,7 @@ class LineChartPainter extends CustomPainter {
       ..close();
 
     final fillPaint = Paint()
-      ..color = AppColors.blue.withOpacity(0.06)
+      ..color = AppColors.blue.withValues(alpha: 0.06)
       ..style = PaintingStyle.fill;
 
     final linePaint = Paint()

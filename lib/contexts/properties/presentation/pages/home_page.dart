@@ -4,7 +4,6 @@ import 'package:nexoraiot/app/theme/app_colors.dart';
 import 'package:nexoraiot/contexts/properties/domain/entities/app_data.dart';
 import 'package:nexoraiot/contexts/alerts/domain/entities/incident.dart';
 import 'package:nexoraiot/contexts/consumption/domain/entities/consumption_view.dart';
-import 'package:nexoraiot/contexts/devices/domain/entities/device_sensor.dart';
 import 'package:nexoraiot/shared/presentation/widgets/line_chart.dart';
 import 'package:nexoraiot/shared/presentation/widgets/section_label.dart';
 import 'package:nexoraiot/shared/presentation/widgets/white_card.dart';
@@ -12,10 +11,7 @@ import 'package:nexoraiot/shared/presentation/widgets/white_card.dart';
 class HomePage extends StatefulWidget {
   final AppData data;
 
-  const HomePage({
-    super.key,
-    required this.data,
-  });
+  const HomePage({super.key, required this.data});
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -39,14 +35,30 @@ class _HomePageState extends State<HomePage> {
 
     // Alerts count
     final totalAlerts = data.incidents.length;
-    final activeAlerts = data.incidents.where((i) => i.level != IncidentLevel.solved).length;
-    final resolvedAlerts = data.incidents.where((i) => i.level == IncidentLevel.solved).length;
-    final criticalAlerts = data.incidents.where((i) => i.level == IncidentLevel.critical).length;
+    final activeAlerts = data.incidents
+        .where((i) => i.status == AlertStatus.active)
+        .length;
+    final resolvedAlerts = data.incidents
+        .where((i) => i.status == AlertStatus.resolved)
+        .length;
+    final criticalAlerts = data.incidents
+        .where((i) => i.criticality == AlertCriticality.high)
+        .length;
 
     // Sensors
     final gasSensorsCount = data.gasSensors.length;
-    final waterSensorsCount = data.consumption[ConsumptionMetric.water]?[ConsumptionRange.day]?.areas.length ?? 0;
-    final electricitySensorsCount = data.consumption[ConsumptionMetric.electricity]?[ConsumptionRange.day]?.areas.length ?? 0;
+    final waterSensorsCount =
+        data
+            .consumption[ConsumptionMetric.water]?[ConsumptionRange.day]
+            ?.areas
+            .length ??
+        0;
+    final electricitySensorsCount =
+        data
+            .consumption[ConsumptionMetric.electricity]?[ConsumptionRange.day]
+            ?.areas
+            .length ??
+        0;
 
     // Room distribution
     final roomCounts = <String, int>{};
@@ -60,13 +72,15 @@ class _HomePageState extends State<HomePage> {
     String systemStateLabel = 'ÓPTIMO';
     Color systemStateColor = AppColors.green;
     IconData systemStateIcon = Icons.check_circle;
-    String systemStateDesc = 'Todos los sistemas están respondiendo correctamente';
+    String systemStateDesc =
+        'Todos los sistemas están respondiendo correctamente';
 
     if (criticalAlerts > 0) {
       systemStateLabel = 'ALERTA CRÍTICA';
       systemStateColor = AppColors.red;
       systemStateIcon = Icons.error;
-      systemStateDesc = '$criticalAlerts incidentes críticos que requieren atención';
+      systemStateDesc =
+          '$criticalAlerts incidentes críticos que requieren atención';
     } else if (activeAlerts > 0) {
       systemStateLabel = 'ADVERTENCIA';
       systemStateColor = AppColors.orange;
@@ -92,7 +106,7 @@ class _HomePageState extends State<HomePage> {
               children: [
                 const SectionLabel('RESUMEN DE ESTADO'),
                 const SizedBox(height: 12),
-                
+
                 // Device summary and Alert summary row
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -136,13 +150,17 @@ class _HomePageState extends State<HomePage> {
                           _SummaryItem(
                             label: 'Activas',
                             value: '$activeAlerts',
-                            color: activeAlerts > 0 ? AppColors.orange : AppColors.muted,
+                            color: activeAlerts > 0
+                                ? AppColors.orange
+                                : AppColors.muted,
                             bold: activeAlerts > 0,
                           ),
                           _SummaryItem(
                             label: 'Críticas',
                             value: '$criticalAlerts',
-                            color: criticalAlerts > 0 ? AppColors.red : AppColors.muted,
+                            color: criticalAlerts > 0
+                                ? AppColors.red
+                                : AppColors.muted,
                             bold: criticalAlerts > 0,
                           ),
                           _SummaryItem(
@@ -155,9 +173,9 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ],
                 ),
-                
+
                 const SizedBox(height: 16),
-                
+
                 // Sensors and room distribution row
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -167,7 +185,8 @@ class _HomePageState extends State<HomePage> {
                         title: 'Sensores',
                         icon: Icons.analytics_outlined,
                         iconColor: AppColors.green,
-                        mainValue: '${gasSensorsCount + waterSensorsCount + electricitySensorsCount}',
+                        mainValue:
+                            '${gasSensorsCount + waterSensorsCount + electricitySensorsCount}',
                         mainValueLabel: 'Monitoreados',
                         items: [
                           _SummaryItem(
@@ -197,12 +216,12 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ],
                 ),
-                
+
                 const SizedBox(height: 24),
-                
+
                 const SectionLabel('ACTIVIDAD RECIENTE'),
                 const SizedBox(height: 12),
-                
+
                 // Show the top 3 latest incidents
                 if (data.incidents.isEmpty)
                   const Padding(
@@ -215,13 +234,15 @@ class _HomePageState extends State<HomePage> {
                     ),
                   )
                 else
-                  ...data.incidents.take(3).map((incident) => _ActivityTile(incident: incident)),
-                
+                  ...data.incidents
+                      .take(3)
+                      .map((incident) => _ActivityTile(incident: incident)),
+
                 const SizedBox(height: 20),
-                
+
                 const SectionLabel('TENDENCIA GENERAL DE ACTIVIDAD (24H)'),
                 const SizedBox(height: 12),
-                
+
                 _TrendCard(values: data.latest24h),
               ],
             ),
@@ -279,7 +300,7 @@ class _HomeHeader extends StatelessWidget {
                     Text(
                       'NEXORA PLATFORM'.toUpperCase(),
                       style: TextStyle(
-                        color: Colors.white.withOpacity(0.6),
+                        color: Colors.white.withValues(alpha: 0.6),
                         fontSize: 10,
                         fontWeight: FontWeight.w800,
                         letterSpacing: 2.0,
@@ -302,18 +323,17 @@ class _HomeHeader extends StatelessWidget {
               const SizedBox(width: 12),
               Container(
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.12),
+                  color: Colors.white.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(
-                      Icons.home,
-                      color: Colors.white70,
-                      size: 16,
-                    ),
+                    const Icon(Icons.home, color: Colors.white70, size: 16),
                     const SizedBox(width: 6),
                     Text(
                       homeName,
@@ -332,10 +352,10 @@ class _HomeHeader extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.09),
+              color: Colors.white.withValues(alpha: 0.09),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: Colors.white.withOpacity(0.15),
+                color: Colors.white.withValues(alpha: 0.15),
                 width: 1.0,
               ),
             ),
@@ -344,14 +364,10 @@ class _HomeHeader extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: stateColor.withOpacity(0.2),
+                    color: stateColor.withValues(alpha: 0.2),
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(
-                    stateIcon,
-                    color: stateColor,
-                    size: 24,
-                  ),
+                  child: Icon(stateIcon, color: stateColor, size: 24),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -361,7 +377,7 @@ class _HomeHeader extends StatelessWidget {
                       Text(
                         'ESTADO DEL SISTEMA',
                         style: TextStyle(
-                          color: Colors.white.withOpacity(0.5),
+                          color: Colors.white.withValues(alpha: 0.5),
                           fontSize: 9,
                           fontWeight: FontWeight.w800,
                           letterSpacing: 1.5,
@@ -381,7 +397,7 @@ class _HomeHeader extends StatelessWidget {
                       Text(
                         stateDesc,
                         style: TextStyle(
-                          color: Colors.white.withOpacity(0.9),
+                          color: Colors.white.withValues(alpha: 0.9),
                           fontSize: 11,
                         ),
                       ),
@@ -426,14 +442,10 @@ class _SummaryCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
-                  color: iconColor.withOpacity(0.08),
+                  color: iconColor.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Icon(
-                  icon,
-                  color: iconColor,
-                  size: 18,
-                ),
+                child: Icon(icon, color: iconColor, size: 18),
               ),
               const SizedBox(width: 8),
               Expanded(
@@ -492,17 +504,22 @@ class _SummaryCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       maxLines: 1,
                       style: TextStyle(
-                        color: AppColors.text.withOpacity(0.85),
+                        color: AppColors.text.withValues(alpha: 0.85),
                         fontSize: 11,
-                        fontWeight: item.bold ? FontWeight.bold : FontWeight.normal,
+                        fontWeight: item.bold
+                            ? FontWeight.bold
+                            : FontWeight.normal,
                       ),
                     ),
                   ),
                   const SizedBox(width: 4),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
-                      color: item.color.withOpacity(0.08),
+                      color: item.color.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: Text(
@@ -559,7 +576,7 @@ class _RoomDistributionCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
-                  color: AppColors.blue.withOpacity(0.08),
+                  color: AppColors.blue.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Icon(
@@ -634,7 +651,9 @@ class _RoomDistributionCard extends StatelessWidget {
                       child: LinearProgressIndicator(
                         value: pct,
                         backgroundColor: AppColors.background,
-                        valueColor: const AlwaysStoppedAnimation<Color>(AppColors.blue),
+                        valueColor: const AlwaysStoppedAnimation<Color>(
+                          AppColors.blue,
+                        ),
                         minHeight: 4,
                       ),
                     ),
@@ -659,18 +678,18 @@ class _ActivityTile extends StatelessWidget {
     Color levelColor;
     String levelText;
 
-    switch (incident.level) {
-      case IncidentLevel.critical:
+    switch (incident.criticality) {
+      case AlertCriticality.high:
         levelColor = AppColors.red;
-        levelText = 'Crítico';
+        levelText = 'Alta';
         break;
-      case IncidentLevel.warning:
+      case AlertCriticality.medium:
         levelColor = AppColors.orange;
-        levelText = 'Advertencia';
+        levelText = 'Media';
         break;
-      case IncidentLevel.solved:
+      case AlertCriticality.low:
         levelColor = AppColors.green;
-        levelText = 'Resuelto';
+        levelText = 'Baja';
         break;
     }
 
@@ -687,14 +706,10 @@ class _ActivityTile extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: levelColor.withOpacity(0.08),
+              color: levelColor.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(
-              incident.icon,
-              color: levelColor,
-              size: 20,
-            ),
+            child: Icon(incident.icon, color: levelColor, size: 20),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -712,10 +727,7 @@ class _ActivityTile extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   incident.subtitle,
-                  style: const TextStyle(
-                    color: AppColors.muted,
-                    fontSize: 11,
-                  ),
+                  style: const TextStyle(color: AppColors.muted, fontSize: 11),
                 ),
               ],
             ),
@@ -736,7 +748,7 @@ class _ActivityTile extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
-                  color: levelColor.withOpacity(0.1),
+                  color: levelColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
@@ -803,19 +815,24 @@ class _TrendCard extends StatelessWidget {
           const SizedBox(height: 16),
           SizedBox(
             height: 90,
-            child: LineChart(
-              values: values,
-              showGrid: true,
-              showLastDot: true,
-            ),
+            child: LineChart(values: values, showGrid: true, showLastDot: true),
           ),
           const SizedBox(height: 10),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: const [
-              Text('Hace 24h', style: TextStyle(color: AppColors.muted, fontSize: 10)),
-              Text('Hace 12h', style: TextStyle(color: AppColors.muted, fontSize: 10)),
-              Text('Actual', style: TextStyle(color: AppColors.muted, fontSize: 10)),
+              Text(
+                'Hace 24h',
+                style: TextStyle(color: AppColors.muted, fontSize: 10),
+              ),
+              Text(
+                'Hace 12h',
+                style: TextStyle(color: AppColors.muted, fontSize: 10),
+              ),
+              Text(
+                'Actual',
+                style: TextStyle(color: AppColors.muted, fontSize: 10),
+              ),
             ],
           ),
         ],
