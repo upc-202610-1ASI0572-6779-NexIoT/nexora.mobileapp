@@ -1,4 +1,4 @@
-import '../../domain/entities/user.dart';
+import '../../domain/entities/profile.dart';
 import '../../domain/repositories/auth_repository.dart';
 
 class UpdateProfileUseCase {
@@ -6,15 +6,23 @@ class UpdateProfileUseCase {
 
   UpdateProfileUseCase(this.repository);
 
-  Future<User> execute({
+  Future<Profile> execute({
     required String token,
-    required String fullName,
-    required String email,
+    required String firstName,
+    required String lastName,
+    required String country,
+    required String city,
+    required String address,
+    String? phoneNumber,
   }) {
     return repository.updateProfile(
       token: token,
-      fullName: fullName,
-      email: email,
+      firstName: firstName,
+      lastName: lastName,
+      country: country,
+      city: city,
+      address: address,
+      phoneNumber: phoneNumber,
     );
   }
 }

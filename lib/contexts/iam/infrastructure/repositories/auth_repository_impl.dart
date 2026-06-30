@@ -1,4 +1,5 @@
 import '../../application/services/session_service.dart';
+import '../../domain/entities/profile.dart';
 import '../../domain/entities/user.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../api/auth_api_service.dart';
@@ -50,18 +51,34 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<User> updateProfile({
+  Future<Profile> getProfile({
     required String token,
-    required String fullName,
-    required String email,
   }) async {
-    final userDto = await apiService.updateProfile(
+    final profileDto = await apiService.getProfile(token: token);
+    return profileDto.toDomain();
+  }
+
+  @override
+  Future<Profile> updateProfile({
+    required String token,
+    required String firstName,
+    required String lastName,
+    required String country,
+    required String city,
+    required String address,
+    String? phoneNumber,
+  }) async {
+    final profileDto = await apiService.updateProfile(
       token: token,
-      fullName: fullName,
-      email: email,
+      firstName: firstName,
+      lastName: lastName,
+      country: country,
+      city: city,
+      address: address,
+      phoneNumber: phoneNumber,
     );
 
-    return userDto.toDomain();
+    return profileDto.toDomain();
   }
 
   @override

@@ -1,35 +1,22 @@
 class User {
   final int id;
-  final String fullName;
   final String email;
-  final String role;
-  final String accountStatus;
-  final String createdAt;
+  final bool isActive;
+  final int failedLoginAttempts;
+  final DateTime? lockedAt;
+  final DateTime createdAt;
+  final DateTime updatedAt;
 
   const User({
     required this.id,
-    required this.fullName,
     required this.email,
-    required this.role,
-    required this.accountStatus,
+    required this.isActive,
+    required this.failedLoginAttempts,
+    this.lockedAt,
     required this.createdAt,
+    required this.updatedAt,
   });
 
-  User copyWith({
-    int? id,
-    String? fullName,
-    String? email,
-    String? role,
-    String? accountStatus,
-    String? createdAt,
-  }) {
-    return User(
-      id: id ?? this.id,
-      fullName: fullName ?? this.fullName,
-      email: email ?? this.email,
-      role: role ?? this.role,
-      accountStatus: accountStatus ?? this.accountStatus,
-      createdAt: createdAt ?? this.createdAt,
-    );
-  }
+  String get accountStatus => isActive ? 'Active' : 'Inactive';
+  bool get isLocked => lockedAt != null;
 }
