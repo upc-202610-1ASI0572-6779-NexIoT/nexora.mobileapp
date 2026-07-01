@@ -1,3 +1,4 @@
+import '../entities/profile.dart';
 import '../entities/user.dart';
 
 abstract class AuthRepository {
@@ -16,10 +17,18 @@ abstract class AuthRepository {
     required String token,
   });
 
-  Future<User> updateProfile({
+  Future<Profile> getProfile({
     required String token,
-    required String fullName,
-    required String email,
+  });
+
+  Future<Profile> updateProfile({
+    required String token,
+    required String firstName,
+    required String lastName,
+    required String country,
+    required String city,
+    required String address,
+    String? phoneNumber,
   });
 
   Future<void> logout();

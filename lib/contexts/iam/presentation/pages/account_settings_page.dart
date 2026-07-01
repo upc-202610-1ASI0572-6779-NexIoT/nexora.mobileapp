@@ -64,8 +64,14 @@ class _AccountSettingsPageState extends State<AccountSettingsPage> {
 
       await updateProfileUseCase.execute(
         token: 'temporary-auth-token',
-        fullName: fullName,
-        email: email,
+        firstName: fullNameController.text.trim().split(' ').first,
+        lastName: fullNameController.text.trim().split(' ').length > 1
+            ? fullNameController.text.trim().split(' ').sublist(1).join(' ')
+            : '',
+        country: 'Perú',
+        city: 'Lima',
+        address: 'Av. Principal 123',
+        phoneNumber: '+51 955 123 567',
       );
 
       if (!mounted) return;
