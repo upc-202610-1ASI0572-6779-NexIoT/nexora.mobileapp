@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 import 'package:nexoraiot/app/theme/app_colors.dart';
-import 'package:nexoraiot/contexts/properties/infrastructure/repositories/http_properties_repository.dart';
+import 'package:nexoraiot/contexts/iam/application/services/session_service.dart';
+import 'package:nexoraiot/contexts/iam/presentation/pages/login_page.dart';
+import 'package:nexoraiot/contexts/properties/infrastructure/repositories/fake_properties_repository.dart';
 import 'package:nexoraiot/contexts/properties/domain/entities/app_data.dart';
 import 'package:nexoraiot/contexts/properties/domain/repositories/properties_repository.dart';
 import 'router/main_shell.dart';
@@ -33,32 +35,62 @@ class AppLoader extends StatefulWidget {
 }
 
 class _AppLoaderState extends State<AppLoader> {
-  final PropertiesRepository _repository = HttpPropertiesRepository();
-  late final Future<AppData> _futureData;
+  final SessionService _sessionService = SessionService();
+  final PropertiesRepository _repository = FakePropertiesRepository();
+
+  late final Future<bool> _sessionFuture;
 
   @override
   void initState() {
     super.initState();
-    _futureData = _repository.getDashboardData();
+    _sessionFuture = _sessionService.hasActiveSession();
+  }
+
+  Future<AppData> _loadDashboardData() {
+    return _repository.getDashboardData();
   }
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<AppData>(
-      future: _futureData,
-      builder: (context, snapshot) {
-        if (!snapshot.hasData) {
-          return const Scaffold(
-            body: Center(
-              child: CircularProgressIndicator(
-                color: AppColors.blue,
-              ),
-            ),
-          );
+    return FutureBuilder<bool>(
+      future: _sessionFuture,
+      builder: (context, sessionSnapshot) {
+        if (!sessionSnapshot.hasData) {
+          return const _LoadingScreen();
         }
 
-        return MainShell(data: snapshot.data!);
+        final hasSession = sessionSnapshot.data ?? false;
+
+        if (!hasSession) {
+          return const LoginPage();
+        }
+
+        return FutureBuilder<AppData>(
+          future: _loadDashboardData(),
+          builder: (context, dataSnapshot) {
+            if (!dataSnapshot.hasData) {
+              return const _LoadingScreen();
+            }
+
+            return MainShell(data: dataSnapshot.data!);
+          },
+        );
       },
+    );
+  }
+}
+
+class _LoadingScreen extends StatelessWidget {
+  const _LoadingScreen();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(
+      body: Center(
+        child: CircularProgressIndicator(
+          color: AppColors.blue,
+        ),
+      ),
     );
   }
 }

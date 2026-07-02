@@ -7,6 +7,8 @@ import 'package:nexoraiot/contexts/properties/domain/entities/app_data.dart';
 import 'package:nexoraiot/contexts/iam/application/services/session_service.dart';
 import 'package:nexoraiot/contexts/iam/presentation/pages/account_settings_page.dart';
 
+import 'package:nexoraiot/contexts/iam/presentation/pages/login_page.dart';
+
 class ProfilePage extends StatelessWidget {
   final AppData data;
 
@@ -23,6 +25,14 @@ class ProfilePage extends StatelessWidget {
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Session closed successfully')),
+    );
+
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const LoginPage(),
+      ),
+          (route) => false,
     );
   }
 

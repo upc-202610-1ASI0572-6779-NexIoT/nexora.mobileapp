@@ -1,5 +1,5 @@
 class SessionService {
-  String? _token;
+  static String? _token;
 
   Future<void> saveToken(String token) async {
     _token = token;

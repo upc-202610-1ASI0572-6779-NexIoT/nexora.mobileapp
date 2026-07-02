@@ -1,20 +1,32 @@
+import 'dart:convert';
+
+import 'package:http/http.dart' as http;
+
 import '../dto/profile_dto.dart';
 import '../dto/user_dto.dart';
 
 class AuthApiService {
-  // TODO: Replace with real WebService URL when backend deployment is available.
   static const String baseUrl = 'https://api.nexora.local/api/v1';
 
   Future<String> login({
     required String email,
     required String password,
   }) async {
-    // TODO: Connect to POST $baseUrl/authentication/signin.
-    if (email.isEmpty || password.isEmpty) {
-      throw Exception('Email and password are required.');
+    final response = await http.post(
+      Uri.parse('$baseUrl/authentication/signin'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'email': email,
+        'password': password,
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return data['token'] ?? '';
     }
 
-    return 'temporary-auth-token';
+    throw Exception('Invalid email or password.');
   }
 
   Future<UserDto> register({
@@ -22,37 +34,51 @@ class AuthApiService {
     required String email,
     required String password,
   }) async {
-    // TODO: Connect to POST $baseUrl/authentication/signup.
-    if (fullName.isEmpty || email.isEmpty || password.isEmpty) {
-      throw Exception('Full name, email and password are required.');
+    final parts = fullName.trim().split(' ');
+    final firstName = parts.isNotEmpty ? parts.first : '';
+    final lastName = parts.length > 1 ? parts.sublist(1).join(' ') : '';
+
+    final response = await http.post(
+      Uri.parse('$baseUrl/authentication/signup'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'email': email,
+        'password': password,
+        'firstName': firstName,
+        'lastName': lastName,
+        'country': 'Perú',
+        'city': 'Lima',
+        'address': 'Av. Principal 123',
+        'phoneNumber': null,
+      }),
+    );
+
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      final data = jsonDecode(response.body);
+      final now = DateTime.now();
+
+      return UserDto(
+        id: data['userId'] ?? 0,
+        email: data['email'] ?? email,
+        isActive: true,
+        failedLoginAttempts: 0,
+        lockedAt: null,
+        createdAt: now,
+        updatedAt: now,
+      );
     }
 
-    final now = DateTime.now();
-
-    return UserDto(
-      id: 0,
-      email: email,
-      isActive: true,
-      failedLoginAttempts: 0,
-      lockedAt: null,
-      createdAt: now,
-      updatedAt: now,
-    );
+    throw Exception('Could not create account.');
   }
 
   Future<UserDto> getAuthenticatedUser({
     required String token,
   }) async {
-    // TODO: Connect to GET $baseUrl/profile/me or equivalent endpoint.
-    if (token.isEmpty) {
-      throw Exception('Authentication token is required.');
-    }
-
     final now = DateTime.now();
 
     return UserDto(
       id: 0,
-      email: 'user@nexora.com',
+      email: '',
       isActive: true,
       failedLoginAttempts: 0,
       lockedAt: null,
@@ -64,21 +90,19 @@ class AuthApiService {
   Future<ProfileDto> getProfile({
     required String token,
   }) async {
-    // TODO: Connect to GET $baseUrl/profile/me.
-    if (token.isEmpty) {
-      throw Exception('Authentication token is required.');
+    final response = await http.get(
+      Uri.parse('$baseUrl/profiles/me'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      return ProfileDto.fromJson(jsonDecode(response.body));
     }
 
-    return const ProfileDto(
-      email: 'maria.castillo@nexora.com',
-      firstName: 'Maria',
-      lastName: 'Castillo',
-      isActive: true,
-      country: 'Perú',
-      city: 'Lima',
-      address: 'Av. Principal 123',
-      phoneNumber: '+51 955 123 567',
-    );
+    throw Exception('Could not load profile.');
   }
 
   Future<ProfileDto> updateProfile({
@@ -90,24 +114,26 @@ class AuthApiService {
     required String address,
     String? phoneNumber,
   }) async {
-    // TODO: Connect to PUT $baseUrl/profile/me.
-    if (token.isEmpty) {
-      throw Exception('Authentication token is required.');
-    }
-
-    if (firstName.isEmpty || lastName.isEmpty || country.isEmpty) {
-      throw Exception('First name, last name and country are required.');
-    }
-
-    return ProfileDto(
-      email: 'maria.castillo@nexora.com',
-      firstName: firstName,
-      lastName: lastName,
-      isActive: true,
-      country: country,
-      city: city,
-      address: address,
-      phoneNumber: phoneNumber,
+    final response = await http.put(
+      Uri.parse('$baseUrl/profiles/me'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({
+        'firstName': firstName,
+        'lastName': lastName,
+        'country': country,
+        'city': city,
+        'address': address,
+        'phoneNumber': phoneNumber,
+      }),
     );
+
+    if (response.statusCode == 200) {
+      return ProfileDto.fromJson(jsonDecode(response.body));
+    }
+
+    throw Exception('Could not update profile.');
   }
 }
