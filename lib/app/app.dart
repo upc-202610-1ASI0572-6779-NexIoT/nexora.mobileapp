@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:nexoraiot/app/theme/app_colors.dart';
 import 'package:nexoraiot/contexts/iam/application/services/session_service.dart';
 import 'package:nexoraiot/contexts/iam/presentation/pages/login_page.dart';
-import 'package:nexoraiot/contexts/properties/infrastructure/repositories/fake_properties_repository.dart';
+import 'package:nexoraiot/contexts/properties/infrastructure/repositories/http_properties_repository.dart';
 import 'package:nexoraiot/contexts/properties/domain/entities/app_data.dart';
 import 'package:nexoraiot/contexts/properties/domain/repositories/properties_repository.dart';
 import 'router/main_shell.dart';
@@ -36,7 +36,7 @@ class AppLoader extends StatefulWidget {
 
 class _AppLoaderState extends State<AppLoader> {
   final SessionService _sessionService = SessionService();
-  final PropertiesRepository _repository = FakePropertiesRepository();
+  final PropertiesRepository _repository = HttpPropertiesRepository();
 
   late final Future<bool> _sessionFuture;
 

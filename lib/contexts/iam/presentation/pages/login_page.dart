@@ -11,7 +11,7 @@ import 'package:nexoraiot/shared/presentation/widgets/auth_text_field.dart';
 import 'package:nexoraiot/shared/presentation/widgets/social_button.dart';
 
 import 'package:nexoraiot/app/router/main_shell.dart';
-import 'package:nexoraiot/contexts/properties/infrastructure/repositories/fake_properties_repository.dart';
+import 'package:nexoraiot/contexts/properties/infrastructure/repositories/http_properties_repository.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -70,7 +70,7 @@ class _LoginPageState extends State<LoginPage> {
         const SnackBar(content: Text('Login successful')),
       );
 
-      final data = await FakePropertiesRepository().getDashboardData();
+      final data = await HttpPropertiesRepository().getDashboardData();
 
       if (!mounted) return;
 
