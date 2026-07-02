@@ -8,6 +8,8 @@ import 'package:nexoraiot/shared/presentation/widgets/white_card.dart';
 import 'package:nexoraiot/contexts/automations/presentation/pages/automations_page.dart';
 import 'package:nexoraiot/contexts/properties/domain/entities/app_data.dart';
 import 'package:nexoraiot/contexts/devices/domain/entities/device_sensor.dart';
+import 'package:nexoraiot/contexts/devices/domain/repositories/devices_repository.dart';
+import 'package:nexoraiot/contexts/devices/infrastructure/repositories/http_devices_repository.dart';
 
 class DevicesPage extends StatefulWidget {
   final AppData data;
@@ -22,9 +24,43 @@ class DevicesPage extends StatefulWidget {
 }
 
 class _DevicesPageState extends State<DevicesPage> {
+  final DevicesRepository _devicesRepository = HttpDevicesRepository();
+  List<DeviceSensor> _allDevices = [];
+  bool _isLoading = true;
+  String? _errorMessage;
+
   // Filters: null = "All"
   String? _selectedRoom;
   String? _selectedStatus; // null = "All", "connected", "disconnected", "alert"
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDevices();
+  }
+
+  Future<void> _loadDevices() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+    try {
+      final devices = await _devicesRepository.getDevices();
+      if (mounted) {
+        setState(() {
+          _allDevices = devices;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = e.toString();
+          _isLoading = false;
+        });
+      }
+    }
+  }
 
   Future<void> _openAutomations() async {
     await Navigator.of(context).push(
@@ -35,12 +71,6 @@ class _DevicesPageState extends State<DevicesPage> {
     // Toggles / new automations may have changed the active count.
     if (mounted) setState(() {});
   }
-
-  List<DeviceSensor> get _allDevices => [
-        ...widget.data.gasSensors,
-        ...widget.data.airQuality,
-        ...widget.data.humidity,
-      ];
 
   /// Rooms ordered by device counts (desc)
   List<String> get _rooms {
@@ -80,41 +110,72 @@ class _DevicesPageState extends State<DevicesPage> {
     final disconnectedCount = _allDevices.where((d) => !d.isConnected).length;
     final anomaliesCount = _allDevices.where((d) => d.alert).length;
 
-    // Filtered lists for rendering sections
-    final gasFiltered = _filter(data.gasSensors);
-    final airFiltered = _filter(data.airQuality);
-    final humidityFiltered = _filter(data.humidity);
+    Widget body;
+    if (_isLoading) {
+      body = const Expanded(
+        child: Center(
+          child: CircularProgressIndicator(color: AppColors.blue),
+        ),
+      );
+    } else if (_errorMessage != null) {
+      body = Expanded(
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, color: AppColors.red, size: 48),
+              const SizedBox(height: 16),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Text(
+                  'Error al cargar dispositivos:\n$_errorMessage',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: AppColors.text),
+                ),
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: _loadDevices,
+                child: const Text('Reintentar'),
+              ),
+            ],
+          ),
+        ),
+      );
+    } else {
+      // Filtered lists for rendering sections
+      final gasFiltered = _filter(_allDevices.where((d) => d.sensorType == 'Gas').toList());
+      final airFiltered = _filter(_allDevices.where((d) => d.sensorType == 'Air Quality').toList());
+      final humidityFiltered = _filter(_allDevices.where((d) => d.sensorType == 'Humidity').toList());
 
-    final sections = [
-      if (gasFiltered.isNotEmpty)
-        _DeviceSection(
-          title: 'GAS SENSOR',
-          icon: Icons.sensor_occupied_outlined,
-          items: gasFiltered,
-          alertIcon: Icons.warning_rounded,
-        ),
-      if (airFiltered.isNotEmpty)
-        _DeviceSection(
-          title: 'AIR QUALITY',
-          icon: Icons.air,
-          items: airFiltered,
-        ),
-      if (humidityFiltered.isNotEmpty)
-        _DeviceSection(
-          title: 'HUMIDITY',
-          icon: Icons.water_drop_outlined,
-          items: humidityFiltered,
-        ),
-    ];
+      final sections = [
+        if (gasFiltered.isNotEmpty)
+          _DeviceSection(
+            title: 'GAS SENSOR',
+            icon: Icons.sensor_occupied_outlined,
+            items: gasFiltered,
+            alertIcon: Icons.warning_rounded,
+          ),
+        if (airFiltered.isNotEmpty)
+          _DeviceSection(
+            title: 'AIR QUALITY',
+            icon: Icons.air,
+            items: airFiltered,
+          ),
+        if (humidityFiltered.isNotEmpty)
+          _DeviceSection(
+            title: 'HUMIDITY',
+            icon: Icons.water_drop_outlined,
+            items: humidityFiltered,
+          ),
+      ];
 
-    return Column(
-      children: [
-        const TopBar(
-          title: 'Devices',
-          actionIcon: Icons.search,
-        ),
-        Expanded(
+      body = Expanded(
+        child: RefreshIndicator(
+          onRefresh: _loadDevices,
+          color: AppColors.blue,
           child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.fromLTRB(14, 16, 14, 24),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -176,6 +237,16 @@ class _DevicesPageState extends State<DevicesPage> {
             ),
           ),
         ),
+      );
+    }
+
+    return Column(
+      children: [
+        const TopBar(
+          title: 'Devices',
+          actionIcon: Icons.search,
+        ),
+        body,
       ],
     );
   }
